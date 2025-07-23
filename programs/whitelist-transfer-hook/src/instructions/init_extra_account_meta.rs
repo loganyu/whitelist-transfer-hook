@@ -1,16 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken, 
-    token_2022::Token2022, 
-    token_interface::Mint
-};
+use anchor_spl::token_interface::Mint;
 use spl_tlv_account_resolution::{
     account::ExtraAccountMeta, 
     seeds::Seed, 
     state::ExtraAccountMetaList
 };
-
-use crate::state::Whitelist;
 
 #[derive(Accounts)]
 pub struct InitializeExtraAccountMetaList<'info> {
@@ -29,13 +23,6 @@ pub struct InitializeExtraAccountMetaList<'info> {
     )]
     pub extra_account_meta_list: AccountInfo<'info>,
     pub mint: InterfaceAccount<'info, Mint>,
-    #[account(
-        seeds = [b"whitelist"], 
-        bump
-    )]
-    pub whitelist: Account<'info, Whitelist>,
-    pub token_program: Program<'info, Token2022>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
 
