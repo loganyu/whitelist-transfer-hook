@@ -1,14 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import {
-  TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   createMint,
   getAssociatedTokenAddressSync,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
   createInitializeMintInstruction,
-  createInitializeTransferFeeConfigInstruction,
   getMintLen,
   ExtensionType,
   createTransferCheckedWithTransferHookInstruction,
@@ -30,7 +26,6 @@ describe("whitelist-transfer-hook", () => {
   const program = anchor.workspace.whitelistTransferHook as Program<WhitelistTransferHook>;
 
   let mint: anchor.web3.PublicKey;
-  let tokenLimitAccount: anchor.web3.PublicKey;
 
   const mint2022 = anchor.web3.Keypair.generate();
 
