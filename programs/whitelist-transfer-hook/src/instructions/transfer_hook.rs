@@ -61,9 +61,9 @@ impl<'info> TransferHook<'info> {
     /// Checks if the transfer hook is being executed during a transfer operation.
     fn check_is_transferring(&mut self) -> Result<()> {
         // Ensure that the source token account has the transfer hook extension enabled
-        let source_token_info = self.source_token.to_account_info(); //Source token to mint?
+        let source_token_info = self.source_token.to_account_info();
         let mut account_data_ref: RefMut<&mut [u8]> = source_token_info.try_borrow_mut_data()?;
-        let mut account = PodStateWithExtensionsMut::<PodAccount>::unpack(*account_data_ref)?; //PodAccount to PodMint?
+        let mut account = PodStateWithExtensionsMut::<PodAccount>::unpack(*account_data_ref)?;
         let account_extension = account.get_extension_mut::<TransferHookAccount>()?;
     
         // Check if the account is in the middle of a transfer operation
