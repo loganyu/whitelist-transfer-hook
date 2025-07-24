@@ -92,7 +92,7 @@ describe("whitelist-transfer-hook", () => {
     console.log("Transaction signature:", tx);
   });
 
-  xit("Add user to whitelist", async () => {
+  it("Add user to whitelist", async () => {
     const tx = await program.methods.addToWhitelist(provider.publicKey)
       .accountsPartial({
         admin: provider.publicKey,
@@ -101,6 +101,18 @@ describe("whitelist-transfer-hook", () => {
       .rpc();
 
     console.log("\nUser added to whitelist:", provider.publicKey.toBase58());
+    console.log("Transaction signature:", tx);
+  });
+
+  it("Remove user to whitelist", async () => {
+    const tx = await program.methods.removeFromWhitelist(provider.publicKey)
+      .accountsPartial({
+        admin: provider.publicKey,
+        whitelist,
+      })
+      .rpc();
+
+    console.log("\nUser removed from whitelist:", provider.publicKey.toBase58());
     console.log("Transaction signature:", tx);
   });
 

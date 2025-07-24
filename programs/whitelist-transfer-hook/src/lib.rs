@@ -24,7 +24,7 @@ pub mod whitelist_transfer_hook {
     use super::*;
 
     pub fn initialize_whitelist(ctx: Context<InitializeWhitelist>) -> Result<()> {
-        ctx.accounts.initialize_whitelist()
+        ctx.accounts.initialize_whitelist(ctx.bumps)
     }
 
     pub fn add_to_whitelist(ctx: Context<WhitelistOperations>, user: Pubkey) -> Result<()> {
