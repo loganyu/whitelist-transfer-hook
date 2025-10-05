@@ -25,8 +25,6 @@ describe("whitelist-transfer-hook", () => {
 
   const program = anchor.workspace.whitelistTransferHook as Program<WhitelistTransferHook>;
 
-  let mint: anchor.web3.PublicKey;
-
   const mint2022 = anchor.web3.Keypair.generate();
 
   // Sender token account address
@@ -61,18 +59,6 @@ describe("whitelist-transfer-hook", () => {
     ],
     program.programId
   )[0];
-
-  it("Create a new token mint", async() => {
-    mint = await createMint(
-      provider.connection,
-      wallet.payer,
-      provider.publicKey,
-      null,
-      9
-    );
-
-    console.log("\nNew mint created:", mint.toBase58());
-  });
 
   it("Initializes the Whitelist", async () => {
     const tx = await program.methods.initializeWhitelist()
