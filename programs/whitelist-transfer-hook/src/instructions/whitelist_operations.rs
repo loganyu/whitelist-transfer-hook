@@ -43,7 +43,7 @@ impl<'info> WhitelistOperations<'info> {
         let account_info = self.whitelist.to_account_info();
 
         if is_adding {  // Adding to whitelist
-            let new_account_size = account_info.data_len() + std::mem::size_of::<Whitelist>();
+            let new_account_size = account_info.data_len() + std::mem::size_of::<Pubkey>();
             // Calculate rent required for the new account size
             let lamports_required = (Rent::get()?).minimum_balance(new_account_size);
             // Determine additional rent required
@@ -63,7 +63,7 @@ impl<'info> WhitelistOperations<'info> {
             msg!("Account Size Updated: {}", account_info.data_len());
 
         } else {        // Removing from whitelist
-            let new_account_size = account_info.data_len() - std::mem::size_of::<Whitelist>();
+            let new_account_size = account_info.data_len() - std::mem::size_of::<Pubkey>();
             // Calculate rent required for the new account size
             let lamports_required = (Rent::get()?).minimum_balance(new_account_size);
             // Determine additional rent to be refunded

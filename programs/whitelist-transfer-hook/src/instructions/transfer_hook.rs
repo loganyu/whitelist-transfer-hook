@@ -61,9 +61,19 @@ impl<'info> TransferHook<'info> {
     /// Checks if the transfer hook is being executed during a transfer operation.
     fn check_is_transferring(&mut self) -> Result<()> {
         // Ensure that the source token account has the transfer hook extension enabled
+
+        // Get the account info of the source token account
         let source_token_info = self.source_token.to_account_info();
+        // Borrow the account data mutably
         let mut account_data_ref: RefMut<&mut [u8]> = source_token_info.try_borrow_mut_data()?;
+
+        // Unpack the account data as a PodStateWithExtensionsMut
+        // This will allow us to access the extensions of the token account
+        // We use PodStateWithExtensionsMut because TokenAccount is a POD (Plain Old Data) type
         let mut account = PodStateWithExtensionsMut::<PodAccount>::unpack(*account_data_ref)?;
+        // Get the TransferHookAccount extension
+        // Search for the TransferHookAccount extension in the token account
+        // The returning struct has a `transferring` field that indicates if the account is in the middle of a transfer operation
         let account_extension = account.get_extension_mut::<TransferHookAccount>()?;
     
         // Check if the account is in the middle of a transfer operation

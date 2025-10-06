@@ -9,7 +9,7 @@ pub struct InitializeWhitelist<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + 4 + std::mem::size_of::<Pubkey>(),
+        space = 8 + 4 + 1, // 8 bytes for discriminator, 4 bytes for vector length, 1 byte for bump
         seeds = [b"whitelist"],
         bump
     )]
