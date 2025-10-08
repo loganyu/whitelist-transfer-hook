@@ -53,84 +53,56 @@ describe("whitelist-transfer-hook", () => {
     program.programId,
   );
 
-  const whitelist = anchor.web3.PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("whitelist"),
-    ],
+  const [senderWhitelistPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("whitelist"), wallet.publicKey.toBuffer()],
     program.programId
-  )[0];
+  );
 
-  it("Initializes the Whitelist", async () => {
-    const tx = await program.methods.initializeWhitelist()
+  const [recipientWhitelistPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("whitelist"), recipient.publicKey.toBuffer()],
+    program.programId
+  );
+
+  it("Initializes Mint with Transfer Hook", async () => {
+    const tx = await program.methods
+      .initializeMintWithHook()
       .accountsPartial({
-        admin: provider.publicKey,
-        whitelist,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        payer: wallet.publicKey,
+        mint: mint2022.publicKey,
+        extraAccountMetaList: extraAccountMetaListPDA,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
       })
-      .rpc();
+      .signers([mint2022])
+      .rpc({ skipPreflight: true });
 
-    console.log("\nWhitelist initialized:", whitelist.toBase58());
+    console.log("\nMint initialized:", mint2022.publicKey.toBase58());
+    console.log("Mint address:", mint2022.publicKey.toBase58());
+    console.log("Extra Account Meta List:", extraAccountMetaListPDA.toBase58());
     console.log("Transaction signature:", tx);
   });
 
-  it("Add user to whitelist", async () => {
-    const tx = await program.methods.addToWhitelist(provider.publicKey)
+  it("Add sender to whitelist", async () => {
+    const tx = await program.methods
+      .addToWhitelist(wallet.publicKey)
       .accountsPartial({
-        admin: provider.publicKey,
-        whitelist,
+        admin: wallet.publicKey,
+        whitelist: senderWhitelistPDA,
+        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
-    console.log("\nUser added to whitelist:", provider.publicKey.toBase58());
+    console.log("\Sender added to whitelist");
+    console.log("User:", wallet.publicKey.toBase58());
+    console.log("Whitelist PDA:", senderWhitelistPDA.toBase58());
     console.log("Transaction signature:", tx);
-  });
 
-  it("Remove user to whitelist", async () => {
-    const tx = await program.methods.removeFromWhitelist(provider.publicKey)
-      .accountsPartial({
-        admin: provider.publicKey,
-        whitelist,
-      })
-      .rpc();
-
-    console.log("\nUser removed from whitelist:", provider.publicKey.toBase58());
-    console.log("Transaction signature:", tx);
-  });
-
-  it('Create Mint Account with Transfer Hook Extension', async () => {
-    const extensions = [ExtensionType.TransferHook];
-    const mintLen = getMintLen(extensions);
-    const lamports = await provider.connection.getMinimumBalanceForRentExemption(mintLen);
-
-    const transaction = new Transaction().add(
-      SystemProgram.createAccount({
-        fromPubkey: wallet.publicKey,
-        newAccountPubkey: mint2022.publicKey,
-        space: mintLen,
-        lamports: lamports,
-        programId: TOKEN_2022_PROGRAM_ID,
-      }),
-      createInitializeTransferHookInstruction(
-        mint2022.publicKey,
-        wallet.publicKey,
-        program.programId, // Transfer Hook Program ID
-        TOKEN_2022_PROGRAM_ID,
-      ),
-      createInitializeMintInstruction(mint2022.publicKey, 9, wallet.publicKey, null, TOKEN_2022_PROGRAM_ID),
-    );
-
-    const txSig = await sendAndConfirmTransaction(provider.connection, transaction, [wallet.payer, mint2022], {
-      skipPreflight: true,
-      commitment: 'finalized',
+    const whitelistAccount = await program.account.whitelist.fetch(senderWhitelistPDA);
+    console.log("Whitelist account data:", {
+      user: whitelistAccount.user.toBase58(),
+      isWhitelisted: whitelistAccount.isWhitelisted,
+      bump: whitelistAccount.bump,
     });
-
-    const txDetails = await program.provider.connection.getTransaction(txSig, {
-      maxSupportedTransactionVersion: 0,
-      commitment: 'confirmed',
-    });
-    //console.log(txDetails.meta.logMessages);
-
-    console.log("\nTransaction Signature: ", txSig);
   });
 
   it('Create Token Accounts and Mint Tokens', async () => {
@@ -160,26 +132,6 @@ describe("whitelist-transfer-hook", () => {
     const txSig = await sendAndConfirmTransaction(provider.connection, transaction, [wallet.payer], { skipPreflight: true });
 
     console.log("\nTransaction Signature: ", txSig);
-  });
-
-  // Account to store extra accounts required by the transfer hook instruction
-  it('Create ExtraAccountMetaList Account', async () => {
-    const initializeExtraAccountMetaListInstruction = await program.methods
-      .initializeTransferHook()
-      .accountsPartial({
-        payer: wallet.publicKey,
-        mint: mint2022.publicKey,
-        extraAccountMetaList: extraAccountMetaListPDA,
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
-      //.rpc();
-
-    const transaction = new Transaction().add(initializeExtraAccountMetaListInstruction);
-
-    const txSig = await sendAndConfirmTransaction(provider.connection, transaction, [wallet.payer], { skipPreflight: true, commitment: 'confirmed' });
-    console.log("\nExtraAccountMetaList Account created:", extraAccountMetaListPDA.toBase58());
-    console.log('Transaction Signature:', txSig);
   });
 
   it('Transfer Hook with Extra Account Meta', async () => {
@@ -212,6 +164,79 @@ describe("whitelist-transfer-hook", () => {
         console.error("\nTransaction failed:", error.logs[4]);
       } else {
         console.error("\nUnexpected error:", error);
+      }
+    }
+  });
+
+  it("Remove sender from whitelist", async () => {
+    const tx = await program.methods
+      .removeFromWhitelist(wallet.publicKey)
+      .accountsPartial({
+        admin: wallet.publicKey,
+        whitelist: senderWhitelistPDA,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    console.log("\nSender removed from whitelist.");
+    console.log("User:", wallet.publicKey.toBase58());
+    console.log("Transaction signature:", tx);
+
+    try {
+      await program.account.whitelist.fetch(senderWhitelistPDA);
+      console.log("ERROR: Account should be closed but still exists!");
+    } catch (error) {
+      console.log("Confirmed: Whitelist account closed successfully");
+    }
+  });
+
+  it("Transfer tokens (sender NOT whitelisted, should fail)", async () => {
+    // 1 token
+    const amount = 1 * 10 ** 9;
+    const amountBigInt = BigInt(amount);
+
+    const transferInstructionWithHelper = await createTransferCheckedWithTransferHookInstruction(
+      provider.connection,
+      sourceTokenAccount,
+      mint2022.publicKey,
+      destinationTokenAccount,
+      wallet.publicKey,
+      amountBigInt,
+      9,
+      [],
+      'confirmed',
+      TOKEN_2022_PROGRAM_ID,
+    );
+
+    const transaction = new Transaction().add(transferInstructionWithHelper);
+
+    try {
+      const txSig = await sendAndConfirmTransaction(
+        provider.connection,
+        transaction,
+        [wallet.payer],
+        { skipPreflight: false }
+      );
+      console.log("\nERROR: Transfer should have failed but succeeded!");
+      console.log("Transfer Signature:", txSig);
+      throw new Error("Transfer should have failed for non-whitelisted user");
+    } catch (error) {
+      if (error instanceof SendTransactionError) {
+        console.log("\nTransfer correctly failed (sender not whitelisted)");
+        console.log("Error message:", error.message);
+        // Look for our custom error in the logs
+        const hasWhitelistError = error.logs?.some(log => 
+          log.includes("Owner is not whitelisted") || 
+          log.includes("OwnerNotWhitelisted")
+        );
+        if (hasWhitelistError) {
+          console.log("Correct error: Owner is not whitelisted");
+        }
+      } else if (error.message === "Transfer should have failed for non-whitelisted user") {
+        throw error;
+      } else {
+        console.error("\nUnexpected error:", error);
+        throw error;
       }
     }
   });
